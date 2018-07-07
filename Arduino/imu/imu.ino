@@ -24,6 +24,8 @@ byte gyro_address[] = {GYRO_XOUT, GYRO_YOUT, GYRO_ZOUT};
 
 double roll, pitch, rollRate, pitchRate, rollAngle, pitchAngle, dt;
 
+float rollGyro, alpha, rollAcc;
+
 void setup() 
 {
   Wire.begin();
@@ -37,12 +39,49 @@ void setup()
   //while(!(device_id == 0x71));
 
   dt = micros();
+
+  Wire.beginTransmission(MPU9255_ADDRESS);
+  Wire.write(0x6B);
+  Wire.write(0x00);
+  error = Wire.endTransmission();
+
+  Wire.beginTransmission(MPU9255_ADDRESS);
+  Wire.write(0x6C);
+  Wire.write(0x00);
+  error = Wire.endTransmission();
+
+  rollGyro = 0;
+  rollAcc = 0;
+  alpha = 0.96;
 }
+
 
 void loop() 
 {
+  for(i=0; i<=2; i++)
+  {
+    a[i] = read(MPU9255_ADDRESS, acc_address[i], 2);
+    g[i] = read(MPU9255_ADDRESS, gyro_address[i], 2);
+  }
+ /* Serial.print(a[0]); Serial.print(" ");
+  Serial.print(a[1]); Serial.print(" ");
+  Serial.print(a[2]); Serial.print(" ");
+  Serial.print(g[0]); Serial.print(" ");
+  Serial.print(g[1]); Serial.print(" ");
+  Serial.println(g[2]);
+*/
+  rollRate = g[1] * gyro_deg2rad;
+  //rollGyro = rollGyro + ((rollRate * (micros() - dt))/1000000.0);
+  
 
+  rollAngle = atan2(a[0], a[2]);
+  //Serial.print(rollAngle); Serial.print(" "); Serial.println(rollGyro);
+
+  rollAcc = (alpha * (rollAcc + ((rollRate * (micros() - dt))/1000000.0))) + ((1 - alpha)* rollAngle);
+  Serial.println(rollAcc * (180.0/pi));
+  dt = micros();
 }
+
 
 int16_t read(byte deviceAddress, byte valueAddress, int bytesToRead)
 {
